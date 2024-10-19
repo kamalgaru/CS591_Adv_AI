@@ -1,1 +1,127 @@
+import heapq
 
+# Define possible movements (up, down, left, right)
+movements = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+
+# Define node class
+class Node:
+    def __init__(self, position, cost, heuristic):
+        """
+        Initialize a Node.
+
+        Args:
+        position: The node's position as a tuple of two integers.
+        cost: The cost to reach this node.
+        heuristic: The heuristic value for this node.
+        """
+        self.position = position
+        self.cost = cost
+        self.heuristic = heuristic
+        self.parent = None  # Track the path
+
+    def __lt__(self, other):
+        return (self.cost + self.heuristic) < (other.cost + other.heuristic)
+
+def heuristic(node, goal):
+    """
+    Calculate the Manhattan distance heuristic.
+
+    Args:
+    node: The current node's position.
+    goal: The goal position.
+
+    Returns:
+    The Manhattan distance between the node and the goal.
+    """
+    return abs(node[0] - goal[0]) + abs(node[1] - goal[1])
+
+def astar_search(grid, start, goal):
+    """
+    Perform A* search on the grid.
+
+    Args:
+    grid: The maze grid as a list of strings.
+    start: The start position.
+    goal: The goal position.
+
+    Returns:
+    A tuple containing the path, path cost, nodes expanded, max tree depth, and max fringe size, or None if no path is found.
+    """
+    open_set = []
+    closed_set = set()
+    came_from = {start: None}
+    cost_so_far = {start: 0}
+    max_tree_depth = 0
+    max_fringe_size = 0
+
+    start_node = Node(start, 0, heuristic(start, goal))
+    heapq.heappush(open_set, start_node)
+
+    while open_set:
+        current_node = heapq.heappop(open_set)
+        max_tree_depth = max(max_tree_depth, current_node.cost)
+
+        if current_node.position == goal:
+            # Path found, reconstruct and return it
+            path = []
+            current = current_node
+            while current:
+                path.insert(0, current.position)
+                current = current.parent
+            path_cost = len(path) - 1
+            nodes_expanded = len(came_from)
+            return path, path_cost, nodes_expanded, max_tree_depth, max_fringe_size
+
+        closed_set.add(current_node.position)
+
+        for movement in movements:
+            neighbor = (current_node.position[0] + movement[0], current_node.position[1] + movement[1])
+            if (0 <= neighbor[0] < len(grid) and 
+                0 <= neighbor[1] < len(grid[0]) and 
+                grid[neighbor[0]][neighbor[1]] != '%'):
+                
+                new_cost = current_node.cost + 1
+                if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
+                    cost_so_far[neighbor] = new_cost
+                    heuristic_val = heuristic(neighbor, goal)
+                    new_node = Node(neighbor, new_cost, heuristic_val)
+                    new_node.parent = current_node
+                    came_from[neighbor] = current_node
+
+                    # Check if the neighbor is already in the open set with a lower cost
+                    existing_node = next((node for node in open_set if node.position == neighbor), None)
+                    if existing_node and existing_node.cost <= new_cost:
+                        continue
+
+                    heapq.heappush(open_set, new_node)
+                    max_fringe_size = max(max_fringe_size, len(open_set))
+
+    return None  # No path found
+
+
+def load_maze(filename):
+    maze = []
+    start = None
+    goal = None
+    with open(filename, 'r') as f:
+        for line in f:
+            row = []
+            for char in line.strip():
+                if char == 'P':
+                    start = (len(maze), len(row))
+                elif char == '.':
+                    goal = (len(maze), len(row))
+                row.append(char)
+            maze.append(row)
+    return maze, start, goal
+
+# Run A* search on each maze
+for maze_file in ['smallMaze.lay', 'mediumMaze.lay', 'bigMaze.lay', 'openMaze.lay']:
+    maze, start, goal = load_maze(maze_file)
+    path, path_cost, nodes_expanded, max_tree_depth, max_fringe_size = astar_search(maze, start, goal)
+    print(maze_file)
+    print(f"Path Cost: {path_cost}")
+    print(f"Nodes Expanded: {nodes_expanded}")
+    print(f"Max Tree Depth: {max_tree_depth}")
+    print(f"Max Fringe Size: {max_fringe_size}")
+    print()
