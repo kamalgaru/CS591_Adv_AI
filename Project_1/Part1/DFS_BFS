@@ -1,1 +1,99 @@
+#load maze from .lay file
+def loadMaze(filename):
+	file = open(filename, 'r')
+	a = 0
+	maze = []
+	start = []
+	goal = []
+	for line in file:
+		b = 0
+		maze.append([])
+		for element in line:
+			if element != '\n':
+				maze[a].append(element)
+				if element == 'P':
+					start.append(a)
+					start.append(b)
+				if element == '.':
+					goal.append(a)
+					goal.append(b)
+			b+=1
+		a+=1
+	
+	file.close()
+	return maze, start, goal
+
+#display maze
+def printMaze(maze):
+	print('\n'.join(map(''.join, maze)))
+
+
+# depth first search method
+def dfs(filename):
+	maze, start, goal = loadMaze(filename)
+	if (start == goal):
+		return True
+	finish = False
+	nodes = []
+	path = []
+	visited = []
+	frontier = [start]
+	maxdepth =0
+	fringe = 0
+	while (finish == False and len(frontier) > 0):
+		# if goal state is reached exit loop
+		if (frontier[len(frontier)-1] == goal):
+			path.append(frontier[len(frontier)-1])
+			maxdepth = max(maxdepth, len(path)-1)
+			finish = True
+			break
+		node = frontier.pop()
+		nodes.append(node)
+		path.append(node)
+		maxdepth = max(maxdepth, len(path)-1)
+		if (node not in visited):
+			visited.append(node) 
+		neighbors = neighborNodes(node, maze, visited)
+		if (len(neighbors) > 0):
+			for neighbor in neighbors:
+				frontier.append(neighbor)
+				fringe = max(fringe, len(frontier))
+		else:
+			while(len(neighborNodes(path[len(path)-1], maze, visited)) == 0):
+				path.pop()
+
+	if (finish == True):
+		for point in path:
+			maze[point[0]][point[1]] = '.'
+		#print solution
+		print('Solution:')
+		printMaze(maze)
+		print('Number of nodes expanded: %d' %(len(nodes)))
+		print('Maximum tree depth searched: %d' %(maxdepth))
+		print('Maximum size of fringe: %d' %(fringe))
+
+#find neighboring nodes
+def neighborNodes(node, maze, visited):
+    directions = [
+        (1, 0),   # down
+        (0, -1),  # left
+        (-1, 0),  # up
+        (0, 1)    # right
+    ]
+    
+    neighbors = []
+    
+    for direction in directions:
+        newNode = [node[0] + direction[0], node[1] + direction[1]]
+        if (0 <= newNode[0] < len(maze) and 
+            0 <= newNode[1] < len(maze[0]) and 
+            newNode not in visited and 
+            maze[newNode[0]][newNode[1]] != '%'):
+            neighbors.append(newNode)
+    
+    return neighbors
+
+#Perfrom depth first search on 4 maze files
+for mazefile in ['smallMaze.lay', 'mediumMaze.lay', 'bigMaze.lay', 'openMaze.lay']:
+	dfs(mazefile)
 
